@@ -22,12 +22,12 @@ func (cfErrs CloudFoundryErrors) Error() string {
 
 type CloudFoundryError struct {
 	Code        int    `json:"code"`
-	ErrorCode   string `json:"error_code"`
-	Description string `json:"description"`
+	Title   string `json:"title"`
+	Detail string `json:"detail"`
 }
 
 func (cfErr CloudFoundryError) Error() string {
-	return fmt.Sprintf("cfclient error (%s|%d): %s", cfErr.ErrorCode, cfErr.Code, cfErr.Description)
+	return fmt.Sprintf("cfclient error (%s|%d): %s", cfErr.Title, cfErr.Code, cfErr.Detail)
 }
 
 type CloudFoundryHTTPError struct {
