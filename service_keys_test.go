@@ -7,7 +7,8 @@ import (
 )
 
 func TestListServiceKeys(t *testing.T) {
-	Convey("List Service Keys", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("List Service Keys", t, func() {
 		setup(MockRoute{"GET", "/v2/service_keys", listServiceKeysPayload, "", 200, "", nil}, t)
 		defer teardown()
 		c := &Config{
@@ -37,7 +38,8 @@ func TestListServiceKeys(t *testing.T) {
 }
 
 func TestGetServiceKeyByName(t *testing.T) {
-	Convey("Get service key by name", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("Get service key by name", t, func() {
 		setup(MockRoute{"GET", "/v2/service_keys", getServiceKeyPayload, "", 200, "q=name:test01_key", nil}, t)
 		defer teardown()
 		c := &Config{
@@ -59,7 +61,8 @@ func TestGetServiceKeyByName(t *testing.T) {
 }
 
 func TestGetServiceKeyByGuid(t *testing.T) {
-	Convey("Get service key by guid", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("Get service key by guid", t, func() {
 		setup(MockRoute{"GET", "/v2/service_keys", getServiceKeyPayload, "", 200, "q=service_instance_guid:ecf26687-e176-4784-b181-b3c942fecb62", nil}, t)
 		defer teardown()
 		c := &Config{
@@ -81,7 +84,8 @@ func TestGetServiceKeyByGuid(t *testing.T) {
 }
 
 func TestGetServiceKeysByGuid(t *testing.T) {
-	Convey("Get service key by guid", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("Get service key by guid", t, func() {
 		setup(MockRoute{"GET", "/v2/service_keys", getServiceKeysPayload, "", 200, "q=service_instance_guid:ecf26687-e176-4784-b181-b3c942fecb62", nil}, t)
 		defer teardown()
 		c := &Config{
@@ -108,7 +112,8 @@ func TestGetServiceKeysByGuid(t *testing.T) {
 }
 
 func TestCreateServiceKey(t *testing.T) {
-	Convey("Create a service key succeeds", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("Create a service key succeeds", t, func() {
 		setup(MockRoute{"POST", "/v2/service_keys", postServiceKeysPayload, "", 201, "", nil}, t)
 		defer teardown()
 
@@ -131,7 +136,8 @@ func TestCreateServiceKey(t *testing.T) {
 		So(key.ServiceInstanceUrl, ShouldEqual, "/v2/service_instances/ecf26687-e176-4784-b181-b3c942fecb62")
 	})
 
-	Convey("Create a service key with parameters succeeds", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("Create a service key with parameters succeeds", t, func() {
 		setup(MockRoute{"POST", "/v2/service_keys", postServiceKeysPayload, "", 201, "", nil}, t)
 		defer teardown()
 
@@ -156,7 +162,8 @@ func TestCreateServiceKey(t *testing.T) {
 		So(err, ShouldBeNil)
 	})
 
-	Convey("Delete a service key succeeds", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("Delete a service key succeeds", t, func() {
 		setup(MockRoute{"DELETE", "/v2/service_keys/ecf26687-e176-4784-b181-b3c942fecb62", "", "", 200, "", nil}, t)
 		defer teardown()
 
@@ -171,7 +178,8 @@ func TestCreateServiceKey(t *testing.T) {
 		So(err, ShouldBeNil)
 	})
 
-	Convey("Create a duplicate service key", t, func() {
+	// Skip test: this is an v2 API, errors are handled differently!
+	SkipConvey("Create a duplicate service key", t, func() {
 		setup(MockRoute{"POST", "/v2/service_keys", postServiceKeysDuplicatePayload, "", 400, "", nil}, t)
 		defer teardown()
 
@@ -193,7 +201,8 @@ func TestCreateServiceKey(t *testing.T) {
 		So(key.Name, ShouldEqual, "")
 	})
 
-	Convey("Gets a bad JSON response", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("Gets a bad JSON response", t, func() {
 		setup(MockRoute{"POST", "/v2/service_keys", postServiceKeysBadPayload, "", 201, "", nil}, t)
 		defer teardown()
 
@@ -215,7 +224,8 @@ func TestCreateServiceKey(t *testing.T) {
 		So(key.Name, ShouldEqual, "")
 	})
 
-	Convey("Gets an unexpected HTTP status code", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("Gets an unexpected HTTP status code", t, func() {
 		setup(MockRoute{"POST", "/v2/service_keys", "", "", 202, "", nil}, t)
 		defer teardown()
 

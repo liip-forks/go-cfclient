@@ -13,11 +13,15 @@ import (
 
 func TestListApps(t *testing.T) {
 	Convey("List Apps", t, func() {
-		mocks := []MockRoute{
-			{"GET", "/v2/apps", listAppsPayload, "Test-golang", 200, "inline-relations-depth=2", nil},
-			{"GET", "/v2/appsPage2", listAppsPayloadPage2, "Test-golang", 200, "", nil},
+		mocksRoutes := MockRouteResponses{
+			"GET",
+			"/v3/apps",
+			[]MockResponse{
+				{"", listAppsPayloadV3, 200, "Test-golang", nil},
+				{"page=2&per_page=1", listAppsPayloadPage2V3, 200, "Test-golang", nil},
+			},
 		}
-		setupMultiple(mocks, t)
+		setupV3(mocksRoutes, t)
 		defer teardown()
 		c := &Config{
 			ApiAddress: server.URL,
@@ -33,7 +37,8 @@ func TestListApps(t *testing.T) {
 }
 
 func TestListAppsByRoute(t *testing.T) {
-	Convey("List Apps by Route", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("List Apps by Route", t, func() {
 		mocks := []MockRoute{
 			{"GET", "/v2/routes/a3fb8d86-4620-4725-b643-0b5122a432e0/apps", listAppsPayload, "Test-golang", 200, "", nil},
 			{"GET", "/v2/appsPage2", listAppsPayloadPage2, "Test-golang", 200, "", nil},
@@ -140,8 +145,12 @@ func TestGetAppByGuidNoInlineCall(t *testing.T) {
 
 func TestAppByGuid(t *testing.T) {
 	Convey("App By GUID", t, func() {
-		setup(MockRoute{"GET", "/v2/apps/9902530c-c634-4864-a189-71d763cb12e2", appPayload, "", 200, "inline-relations-depth=2", nil}, t)
+		mock := MockRouteResponses{"GET", "/v3/apps/9902530c-c634-4864-a189-71d763cb12e2", []MockResponse{
+			{"", appPayload, 200, "", nil},
+		}}
+		setupV3(mock, t)
 		defer teardown()
+
 		c := &Config{
 			ApiAddress: server.URL,
 			Token:      "foobar",
@@ -157,8 +166,12 @@ func TestAppByGuid(t *testing.T) {
 	})
 
 	Convey("App By GUID with environment variables with different types", t, func() {
-		setup(MockRoute{"GET", "/v2/apps/9902530c-c634-4864-a189-71d763cb12e2", appPayloadWithEnvironment, "", 200, "inline-relations-depth=2", nil}, t)
+		mock := MockRouteResponses{"GET", "/v3/apps/9902530c-c634-4864-a189-71d763cb12e2", []MockResponse{
+			{"", appPayloadWithEnvironment, 200, "", nil},
+		}}
+		setupV3(mock, t)
 		defer teardown()
+
 		c := &Config{
 			ApiAddress: server.URL,
 			Token:      "foobar",
@@ -175,7 +188,8 @@ func TestAppByGuid(t *testing.T) {
 }
 
 func TestGetAppInstances(t *testing.T) {
-	Convey("App completely running", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("App completely running", t, func() {
 		setup(MockRoute{"GET", "/v2/apps/9902530c-c634-4864-a189-71d763cb12e2/instances", appInstancePayload, "", 200, "", nil}, t)
 		defer teardown()
 		c := &Config{
@@ -203,7 +217,8 @@ func TestGetAppInstances(t *testing.T) {
 
 	})
 
-	Convey("App partially running", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("App partially running", t, func() {
 		setup(MockRoute{"GET", "/v2/apps/9902530c-c634-4864-a189-71d763cb12e2/instances", appInstanceUnhealthyPayload, "", 200, "", nil}, t)
 		defer teardown()
 		c := &Config{
@@ -233,7 +248,8 @@ func TestGetAppInstances(t *testing.T) {
 }
 
 func TestGetAppStats(t *testing.T) {
-	Convey("App stats completely running", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("App stats completely running", t, func() {
 		setup(MockRoute{"GET", "/v2/apps/9902530c-c634-4864-a189-71d763cb12e2/stats", appStatsPayload, "", 200, "", nil}, t)
 		defer teardown()
 		c := &Config{
@@ -281,7 +297,8 @@ func TestGetAppStats(t *testing.T) {
 }
 
 func TestGetAppRoutes(t *testing.T) {
-	Convey("List app routes", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("List app routes", t, func() {
 		setup(MockRoute{"GET", "/v2/apps/9902530c-c634-4864-a189-71d763cb12e2/routes", appRoutesPayload, "", 200, "", nil}, t)
 		defer teardown()
 		c := &Config{
@@ -307,7 +324,8 @@ func TestGetAppRoutes(t *testing.T) {
 }
 
 func TestUploadAppBits(t *testing.T) {
-	Convey("Upload app bits", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("Upload app bits", t, func() {
 		expectedPayload := "this should really be zipped binary data"
 		mr := MockRoute{
 			Method:   "PUT-FILE",
@@ -331,8 +349,8 @@ func TestUploadAppBits(t *testing.T) {
 }
 
 func TestGetAppBits(t *testing.T) {
-	Convey("Get app bits", t, func() {
-
+	// Skip test: this is an v2 API
+	SkipConvey("Get app bits", t, func() {
 		next := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			w.Header().Set("Content-Type", "application/gzip")
 			w.WriteHeader(http.StatusOK)
@@ -371,7 +389,8 @@ func TestGetAppBits(t *testing.T) {
 }
 
 func TestKillAppInstance(t *testing.T) {
-	Convey("Kills an app instance", t, func() {
+	// Skip test: this is an v2 API
+	SkipConvey("Kills an app instance", t, func() {
 		setup(MockRoute{"DELETE", "/v2/apps/9902530c-c634-4864-a189-71d763cb12e2/instances/0", "", "", 204, "", nil}, t)
 		defer teardown()
 		c := &Config{
@@ -387,8 +406,12 @@ func TestKillAppInstance(t *testing.T) {
 
 func TestAppEnv(t *testing.T) {
 	Convey("Find app space", t, func() {
-		setup(MockRoute{"GET", "/v2/apps/a7c47787-a982-467c-95d7-9ab17cbcc918/env", appEnvPayload, "", 200, "", nil}, t)
+		mock := MockRouteResponses{"GET", "/v3/apps/a7c47787-a982-467c-95d7-9ab17cbcc918/env", []MockResponse{
+			{"", appEnvPayload, 200, "", nil},
+		}}
+		setupV3(mock, t)
 		defer teardown()
+
 		c := &Config{
 			ApiAddress: server.URL,
 			Token:      "foobar",

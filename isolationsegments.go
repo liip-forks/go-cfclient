@@ -100,8 +100,10 @@ func (c *Client) GetIsolationSegmentByGUID(guid string) (*IsolationSegment, erro
 
 func (c *Client) ListIsolationSegmentsByQuery(query url.Values) ([]IsolationSegment, error) {
 	var iss []IsolationSegment
-	requestUrl := "/v3/isolation_segments?" + query.Encode()
+	baseUrl := "/v3/isolation_segments?"
+
 	for {
+		requestUrl := baseUrl + query.Encode()
 		var isr ListIsolationSegmentsResponse
 		r := c.NewRequest("GET", requestUrl)
 		resp, err := c.DoRequest(r)
@@ -129,10 +131,13 @@ func (c *Client) ListIsolationSegmentsByQuery(query url.Values) ([]IsolationSegm
 			})
 		}
 
-		var ok bool
-		requestUrl, ok = isr.Pagination.Next.(string)
-		if !ok || requestUrl == "" {
+		if isr.Pagination.Next == nil {
 			break
+		}
+
+		query, err = isr.Pagination.Next.getQuery()
+		if err != nil {
+			return nil, errors.Wrap(err, "Error handling pagination")
 		}
 	}
 	return iss, nil

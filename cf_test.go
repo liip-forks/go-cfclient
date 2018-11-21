@@ -1,6 +1,7 @@
 package cfclient
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -20,6 +21,118 @@ var (
 	server        *httptest.Server
 	fakeUAAServer *httptest.Server
 )
+
+// *********************************************************************************************************************
+type MockRouteResponses struct {
+	Method      string
+	Endpoint    string
+	Responses   []MockResponse
+}
+
+type MockResponse struct {
+	QueryString string
+	Output      string
+	Status      int
+	UserAgent   string
+	PostForm    *string
+}
+
+func setupV3(mock MockRouteResponses, t *testing.T) {
+	setupMultipleV3([]MockRouteResponses{mock}, t)
+}
+
+func setupMultipleV3(mockEndpoints []MockRouteResponses, t *testing.T) {
+	mux = http.NewServeMux()
+	server = httptest.NewServer(mux)
+	fakeUAAServer = FakeUAAServer(3)
+	m := martini.New()
+	m.Use(render.Renderer())
+	r := martini.NewRouter()
+	for _, mockRoute := range mockEndpoints {
+		method := mockRoute.Method
+		endpoint := mockRoute.Endpoint
+
+		if method == "GET" {
+			r.Get(endpoint, func(res http.ResponseWriter, req *http.Request) (int, string) {
+				fmt.Printf("Request: %s?%s\n", req.URL.Path, req.URL.Query().Encode())
+				for _,mock := range mockRoute.Responses{
+					if req.URL.Query().Encode() != mock.QueryString {
+						continue
+					}
+
+					testUserAgent(req.Header.Get("User-Agent"), mock.UserAgent, t)
+					testReqBody(req, mock.PostForm, t)
+
+					return mock.Status, mock.Output
+				}
+
+				panic(fmt.Sprintf("Missing mock for API call %s?%s"+req.URL.Path, req.URL.Query().Encode()))
+			})
+		//} else if method == "POST" {
+		//	r.Post(endpoint, func(req *http.Request) (int, string) {
+		//		testUserAgent(req.Header.Get("User-Agent"), userAgent, t)
+		//		testQueryString(req.URL.RawQuery, queryString, t)
+		//		testReqBody(req, postFormBody, t)
+		//		return status, output
+		//	})
+		//} else if method == "DELETE" {
+		//	r.Delete(endpoint, func(req *http.Request) (int, string) {
+		//		testUserAgent(req.Header.Get("User-Agent"), userAgent, t)
+		//		testQueryString(req.URL.RawQuery, queryString, t)
+		//		return status, output
+		//	})
+		//} else if method == "PUT" {
+		//	r.Put(endpoint, func(req *http.Request) (int, string) {
+		//		testUserAgent(req.Header.Get("User-Agent"), userAgent, t)
+		//		testQueryString(req.URL.RawQuery, queryString, t)
+		//		testReqBody(req, postFormBody, t)
+		//		return status, output
+		//	})
+		//} else if method == "PATCH" {
+		//	r.Patch(endpoint, func(req *http.Request) (int, string) {
+		//		testUserAgent(req.Header.Get("User-Agent"), userAgent, t)
+		//		testQueryString(req.URL.RawQuery, queryString, t)
+		//		testReqBody(req, postFormBody, t)
+		//		return status, output
+		//	})
+		//} else if method == "PUT-FILE" {
+		//	r.Put(endpoint, func(req *http.Request) (int, string) {
+		//		testUserAgent(req.Header.Get("User-Agent"), userAgent, t)
+		//		testBodyContains(req, postFormBody, t)
+		//		return status, output
+		//	})
+		}
+	}
+	r.Get("/v2/info", func(r render.Render) {
+		r.JSON(200, map[string]interface{}{
+			"authorization_endpoint":       fakeUAAServer.URL,
+			"token_endpoint":               fakeUAAServer.URL,
+			"logging_endpoint":             server.URL,
+			"name":                         "",
+			"build":                        "",
+			"support":                      "https://support.example.net",
+			"version":                      0,
+			"description":                  "",
+			"min_cli_version":              "6.23.0",
+			"min_recommended_cli_version":  "6.23.0",
+			"api_version":                  "2.103.0",
+			"app_ssh_endpoint":             "ssh.example.net:2222",
+			"app_ssh_host_key_fingerprint": "00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:01",
+			"app_ssh_oauth_client":         "ssh-proxy",
+			"doppler_logging_endpoint":     "wss://doppler.example.net:443",
+			"routing_endpoint":             "https://api.example.net/routing",
+		})
+
+	})
+
+	m.Action(r.Handle)
+	mux.Handle("/", m)
+}
+
+// *********************************************************************************************************************
+
+
+
 
 type MockRoute struct {
 	Method      string
@@ -48,7 +161,7 @@ func testQueryString(QueryString string, QueryStringExp string, t *testing.T) {
 	value, _ := url.QueryUnescape(QueryString)
 
 	if QueryStringExp != value {
-		t.Fatalf("Error: Query string '%s' should be equal to '%s'", QueryStringExp, value)
+		t.Fatalf("Error: expected Query-String '%s', got '%s'", QueryStringExp, value)
 	}
 }
 
@@ -57,7 +170,7 @@ func testUserAgent(UserAgent string, UserAgentExp string, t *testing.T) {
 		UserAgentExp = "Go-CF-client/1.1"
 	}
 	if UserAgent != UserAgentExp {
-		t.Fatalf("Error: Agent %s should be equal to %s", UserAgent, UserAgentExp)
+		t.Fatalf("Error: expected Agent '%s', got '%s'", UserAgentExp, UserAgent)
 	}
 }
 
@@ -115,7 +228,12 @@ func setupMultipleWithRedirect(mockEndpoints []MockRouteWithRedirect, t *testing
 		postFormBody := mock.PostForm
 		redirectLocation := mock.RedirectLocation
 		if method == "GET" {
+
+			fmt.Println("Adding route for endpoint: " + endpoint)
+
+
 			r.Get(endpoint, func(res http.ResponseWriter, req *http.Request) (int, string) {
+
 				testUserAgent(req.Header.Get("User-Agent"), userAgent, t)
 				testQueryString(req.URL.RawQuery, queryString, t)
 				if redirectLocation != "" {

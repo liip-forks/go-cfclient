@@ -18,9 +18,7 @@ import (
 )
 
 type AppResponse struct {
-	Count     int           `json:"total_results"`
-	Pages     int           `json:"total_pages"`
-	NextUrl   string        `json:"next_url"`
+	Pagination Pagination   `json:"pagination"`
 	Resources []AppResource `json:"resources"`
 }
 
@@ -247,18 +245,17 @@ func (a *App) Space() (Space, error) {
 // less and equal than 0, it queries all app info
 // When there are no more than totalPages apps on server side, all apps info will be returned
 func (c *Client) ListAppsByQueryWithLimits(query url.Values, totalPages int) ([]App, error) {
-	return c.listApps("/v2/apps?"+query.Encode(), totalPages)
+	return c.listAppsByQuery("/v3/apps", query, totalPages)
 }
 
 func (c *Client) ListAppsByQuery(query url.Values) ([]App, error) {
-	return c.listApps("/v2/apps?"+query.Encode(), -1)
+	return c.listAppsByQuery("/v3/apps", query, -1)
 }
 
 // GetAppByGuidNoInlineCall will fetch app info including space and orgs information
-// Without using inline-relations-depth=2 call
 func (c *Client) GetAppByGuidNoInlineCall(guid string) (App, error) {
 	var appResource AppResource
-	r := c.NewRequest("GET", "/v2/apps/"+guid)
+	r := c.NewRequest("GET", "/v3/apps/"+guid)
 	resp, err := c.DoRequest(r)
 	if err != nil {
 		return App{}, errors.Wrap(err, "Error requesting apps")
@@ -300,20 +297,20 @@ func (c *Client) GetAppByGuidNoInlineCall(guid string) (App, error) {
 
 func (c *Client) ListApps() ([]App, error) {
 	q := url.Values{}
-	q.Set("inline-relations-depth", "2")
 	return c.ListAppsByQuery(q)
 }
 
 func (c *Client) ListAppsByRoute(routeGuid string) ([]App, error) {
-	return c.listApps(fmt.Sprintf("/v2/routes/%s/apps", routeGuid), -1)
+	panic(fmt.Sprintf("Method ListAppsByRoute() is not implemented for V3"))
+	// return c.listAppsByQuery(fmt.Sprintf("/v2/routes/%s/apps", routeGuid), url.Values{}, -1)
 }
 
-func (c *Client) listApps(requestUrl string, totalPages int) ([]App, error) {
-	pages := 0
-	apps := []App{}
+func (c *Client) listAppsByQuery(requestUrl string, query url.Values, totalPages int) ([]App, error) {
+	pageNumber := 0
+	var apps []App
 	for {
 		var appResp AppResponse
-		r := c.NewRequest("GET", requestUrl)
+		r := c.NewRequest("GET", requestUrl+"?"+query.Encode())
 		resp, err := c.DoRequest(r)
 
 		if err != nil {
@@ -333,20 +330,25 @@ func (c *Client) listApps(requestUrl string, totalPages int) ([]App, error) {
 			apps = append(apps, c.mergeAppResource(app))
 		}
 
-		requestUrl = appResp.NextUrl
-		if requestUrl == "" {
+		pageNumber += 1
+		if totalPages > 0 && pageNumber >= totalPages {
 			break
 		}
 
-		pages += 1
-		if totalPages > 0 && pages >= totalPages {
+		if appResp.Pagination.Next == nil {
 			break
+		}
+
+		query, err = appResp.Pagination.Next.getQuery()
+		if err != nil {
+			return nil, errors.Wrap(err, "Error handling pagination")
 		}
 	}
 	return apps, nil
 }
 
 func (c *Client) GetAppInstances(guid string) (map[string]AppInstance, error) {
+	panic(fmt.Sprintf("Method GetAppInstances() is not implemented for V3"))
 	var appInstances map[string]AppInstance
 
 	requestURL := fmt.Sprintf("/v2/apps/%s/instances", guid)
@@ -370,7 +372,7 @@ func (c *Client) GetAppInstances(guid string) (map[string]AppInstance, error) {
 func (c *Client) GetAppEnv(guid string) (AppEnv, error) {
 	var appEnv AppEnv
 
-	requestURL := fmt.Sprintf("/v2/apps/%s/env", guid)
+	requestURL := fmt.Sprintf("/v3/apps/%s/env", guid)
 	r := c.NewRequest("GET", requestURL)
 	resp, err := c.DoRequest(r)
 	if err != nil {
@@ -389,10 +391,12 @@ func (c *Client) GetAppEnv(guid string) (AppEnv, error) {
 }
 
 func (c *Client) GetAppRoutes(guid string) ([]Route, error) {
-	return c.fetchRoutes(fmt.Sprintf("/v2/apps/%s/routes", guid))
+	panic(fmt.Sprintf("Method GetAppRoutes() is not implemented for V3"))
+	// return c.fetchRoutes(fmt.Sprintf("/v2/apps/%s/routes", guid))
 }
 
 func (c *Client) GetAppStats(guid string) (map[string]AppStats, error) {
+	panic(fmt.Sprintf("Method GetAppStats() is not implemented for V3"))
 	var appStats map[string]AppStats
 
 	requestURL := fmt.Sprintf("/v2/apps/%s/stats", guid)
@@ -414,22 +418,23 @@ func (c *Client) GetAppStats(guid string) (map[string]AppStats, error) {
 }
 
 func (c *Client) KillAppInstance(guid string, index string) error {
-	requestURL := fmt.Sprintf("/v2/apps/%s/instances/%s", guid, index)
-	r := c.NewRequest("DELETE", requestURL)
-	resp, err := c.DoRequest(r)
-	if err != nil {
-		return errors.Wrapf(err, "Error stopping app %s at index %s", guid, index)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 204 {
-		return errors.Wrapf(err, "Error stopping app %s at index %s", guid, index)
-	}
-	return nil
+	panic(fmt.Sprintf("Method KillAppInstance() is not implemented for V3"))
+	// requestURL := fmt.Sprintf("/v2/apps/%s/instances/%s", guid, index)
+	// r := c.NewRequest("DELETE", requestURL)
+	// resp, err := c.DoRequest(r)
+	// if err != nil {
+	// 	return errors.Wrapf(err, "Error stopping app %s at index %s", guid, index)
+	// }
+	// defer resp.Body.Close()
+	// if resp.StatusCode != 204 {
+	// 	return errors.Wrapf(err, "Error stopping app %s at index %s", guid, index)
+	// }
+	// return nil
 }
 
 func (c *Client) GetAppByGuid(guid string) (App, error) {
 	var appResource AppResource
-	r := c.NewRequest("GET", "/v2/apps/"+guid+"?inline-relations-depth=2")
+	r := c.NewRequest("GET", "/v3/apps/"+guid)
 	resp, err := c.DoRequest(r)
 	if err != nil {
 		return App{}, errors.Wrap(err, "Error requesting apps")
@@ -473,6 +478,8 @@ func (c *Client) AppByName(appName, spaceGuid, orgGuid string) (app App, err err
 
 // UploadAppBits uploads the application's contents
 func (c *Client) UploadAppBits(file io.Reader, appGUID string) error {
+	panic(fmt.Sprintf("Method UploadAppBits() is not implemented for V3"))
+
 	requestFile, err := ioutil.TempFile("", "requests")
 
 	defer func() {
@@ -531,6 +538,8 @@ func (c *Client) UploadAppBits(file io.Reader, appGUID string) error {
 
 // GetAppBits downloads the application's bits as a tar file
 func (c *Client) GetAppBits(guid string) (io.ReadCloser, error) {
+	panic(fmt.Sprintf("Method GetAppBits() is not implemented for V3"))
+
 	requestURL := fmt.Sprintf("/v2/apps/%s/download", guid)
 	req := c.NewRequest("GET", requestURL)
 	resp, err := c.DoRequestWithoutRedirects(req)
@@ -564,7 +573,7 @@ func (c *Client) CreateApp(req AppCreateRequest) (App, error) {
 	if err != nil {
 		return App{}, err
 	}
-	r := c.NewRequestWithBody("POST", "/v2/apps", buf)
+	r := c.NewRequestWithBody("POST", "/v3/apps", buf)
 	resp, err := c.DoRequest(r)
 	if err != nil {
 		return App{}, errors.Wrapf(err, "Error creating app %s", req.Name)
@@ -585,7 +594,7 @@ func (c *Client) CreateApp(req AppCreateRequest) (App, error) {
 }
 
 func (c *Client) DeleteApp(guid string) error {
-	resp, err := c.DoRequest(c.NewRequest("DELETE", fmt.Sprintf("/v2/apps/%s", guid)))
+	resp, err := c.DoRequest(c.NewRequest("DELETE", fmt.Sprintf("/v3/apps/%s", guid)))
 	if err != nil {
 		return err
 	}
